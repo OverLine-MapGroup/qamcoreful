@@ -1,0 +1,47 @@
+import { api } from "./client";
+
+export interface PsychologistCase {
+  caseId: number;
+  psychologistName: string;
+  message: string;
+  communicationLink: string;
+  status: string;
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
+export interface Psychologist {
+  psychologistId: number;
+  name: string;
+  bookingUrl: string;
+}
+
+export interface CreateComplaintRequest {
+  category: "BULLYING" | "DEPRESSION" | "TEACHER" | "INFRASTRUCTURE";
+  text: string;
+}
+
+// Student Messages
+export const getStudentMessages = async (): Promise<PsychologistCase[]> => {
+  return api("/api/v1/student/messages");
+};
+
+// Student Complaints
+export const createComplaint = async (data: CreateComplaintRequest): Promise<void> => {
+  return api("/api/v1/student/complaints", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+};
+
+// Get Psychologists for Booking
+export const getPsychologists = async (): Promise<Psychologist[]> => {
+  return api("/api/v1/student/psychologists");
+};
+
+// Track Booking Click
+export const trackBookingClick = async (psychologistId: number): Promise<void> => {
+  return api(`/api/v1/student/psychologists/${psychologistId}/book-click`, {
+    method: "POST",
+  });
+};

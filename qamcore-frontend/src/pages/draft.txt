@@ -1,0 +1,87 @@
+бэкендер дал мне это
+
+super-admin-controller
+GET: /api/super-admin/tenants
+POST: /api/super-admin/tenants
+POST: /api/super-admin/tenants/{tenantId}/create-admin
+GET: /api/super-admin/stats
+
+auth-controller
+POST: /api/auth/register-anonymous
+POST: /api/auth/refresh-token
+POST: /api/auth/logout
+POST: /api/auth/login
+
+school-admin-controller
+POST: /api/admin/staff
+GET: /api/admin/groups
+POST: /api/admin/groups
+POST: /api/admin/codes/generate
+GET: /api/admin/stats
+
+health-controller
+GET: /api/public/health
+
+
+СЛЕД СТРАНИЦА
+
+POST tenants localhost-8080/api/super-admin/tenants
+
+{
+    "name": "Astana IT University"
+}
+
+JSON
+{
+    "id": 2,
+    "name": "Astana IT University",
+    "CreatedAI": "2026-02-07T13:56:56.8174695"
+}
+
+POST create admin for tenant localhost-8080/api/super-admin/tenants/2/create-admin
+
+JSON
+{
+    "username": "Admin-AstanaITUn-b5de",
+    "password": "b65ab55d",
+    "role": "ADMIN"
+}
+
+POST create admin for tenant localhost-8080/api/admin/staff
+
+{
+    "fullName": "Arlan Moldageldinov Ertyzbayevich",
+    "role": "TEACHER"
+}
+
+JSON
+{
+    "username": "Teach-MoldageldinovA-17a",
+    "name": "931331d9",
+    "role": "TEACHER"
+}
+
+POST create admin for tenant localhost-8080/api/admin/codes/generate
+
+{
+    "amount": 27,
+    "groupId": 1
+}
+
+JSON
+[
+    "AST-82950",
+    "AST-F66FF",
+    "AST-ADD4E",
+    "AST-33484",
+    "AST-75E68",
+    "AST-0ADB7",
+    "AST-2A475",
+    "AST-C902F",
+    "AST-ADAFC",
+    "AST-AB3ED",
+    "AST-6C14A",
+    "AST-FF8C5",
+    "AST-2642C",
+    "AST-D62F1"
+]
