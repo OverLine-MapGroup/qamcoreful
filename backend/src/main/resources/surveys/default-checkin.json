@@ -1,0 +1,34 @@
+{
+  "version": "weekly-v1",
+  "thresholdMedium": 8,
+  "thresholdRed": 15,
+  "questions": [
+    {
+      "id": "q1",
+      "text": "Как часто вы чувствовали тревогу за последнюю неделю?",
+      "type": "scale",
+      "min": 0,
+      "max": 3,
+      "weight": 2,
+      "isCritical": false
+    },
+    {
+      "id": "q2",
+      "text": "Был ли у вас нормальный сон?",
+      "type": "scale",
+      "min": 0,
+      "max": 3,
+      "weight": 1,
+      "isCritical": false
+    },
+    {
+      "id": "self_harm",
+      "text": "Были ли мысли навредить себе?",
+      "type": "boolean",
+      "min": 0,
+      "max": 1,
+      "weight": 10,
+      "isCritical": true
+    }
+  ]
+}

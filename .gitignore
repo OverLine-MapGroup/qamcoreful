@@ -1,0 +1,14 @@
+# Секреты
+.env
+
+# Зависимости
+node_modules/
+target/
+build/
+venv/
+
+# Логи и временные файлы
+*.log
+.idea/
+.vscode/
+.DS_Store
