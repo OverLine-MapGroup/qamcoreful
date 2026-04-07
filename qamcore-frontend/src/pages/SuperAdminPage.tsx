@@ -95,6 +95,10 @@ export default function SuperAdminPage() {
   // Загрузка данных
   useEffect(() => {
     const loadData = async () => {
+      // Logic Fix: If the user is on the /login page, don't try to fetch admin stats.
+      if (window.location.pathname === "/login") {
+        return;
+      }
       try {
         const [tenantsData, statsData] = await Promise.all([
           getTenants(),

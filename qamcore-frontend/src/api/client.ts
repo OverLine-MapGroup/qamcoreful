@@ -1,5 +1,5 @@
 // Backend URL configuration
-const BASE_URL = "https://qamcore-backend-example-production.up.railway.app";
+import { API_BASE_URL } from "./constants";
 
 export const api = async (
   url: string,
@@ -13,7 +13,12 @@ export const api = async (
   try {
     const isValidToken = token && token !== "undefined" && token !== "null" && token.length > 10;
 
-    const response = await fetch(`${BASE_URL}${url}`, {
+    // Use relative URL for Vite proxy to work
+    const fullUrl = url.startsWith(API_BASE_URL) ? url : `${API_BASE_URL}${url}`;
+    
+    console.log("[API REQUEST]", fullUrl, options);
+    
+    const response = await fetch(fullUrl, {
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -40,6 +45,11 @@ export const api = async (
         useAuthStore.getState().logout();
         window.location.href = '/login';
       } else if (response.status === 403) {
+        console.error("403 Detailed Response:", {
+            url: fullUrl,
+            hasToken: !!token,
+            tokenPreview: token ? token.substring(0, 10) : 'none'
+        });
         errorMessage = 'Forbidden: You do not have permission to access this resource.';
       } else if (response.status === 404) {
         errorMessage = 'Not found: The requested resource does not exist.';

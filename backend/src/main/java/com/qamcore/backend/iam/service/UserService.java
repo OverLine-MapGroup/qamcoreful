@@ -56,7 +56,7 @@ public class UserService {
                 .build();
     }
 
-    @CacheEvict(value = "psychologistsList", key = "T(com.qamcore.backend.common.context.TenantContext).getTenantId()")
+    @CacheEvict(value = {"psychologistsList", "staffList"}, key = "T(com.qamcore.backend.common.context.TenantContext).getTenantId()")
     @Transactional
     public StaffResponse createStaff(CreateStaffRequest request) {
         Long tenantId = TenantContext.getTenantId();
@@ -65,7 +65,7 @@ public class UserService {
         String[] parts = request.getFullName().split(" ");
         String lastName = parts.length > 0 ? parts[0].replaceAll("[^a-zA-Z]", "") : "User";
         String initial = parts.length > 1 ? parts[1].substring(0, 1) : "X";
-        String prefix = "Psy-";
+        String prefix = request.getRole() == Role.TEACHER ? "Tea-" : "Psy-";
 
         String username;
         String rawPassword = generateSecurePassword();
@@ -78,7 +78,7 @@ public class UserService {
         User staff = User.builder()
                 .username(username)
                 .password(passwordEncoder.encode(rawPassword))
-                .role(Role.PSYCHOLOGIST)
+                .role(request.getRole())
                 .tenant(tenant)
                 .build();
 
@@ -87,15 +87,16 @@ public class UserService {
         return StaffResponse.builder()
                 .username(username)
                 .password(rawPassword)
-                .role(Role.PSYCHOLOGIST.name())
+                .role(request.getRole().name())
                 .build();
     }
 
-    @Cacheable(value = "psychologistsList", key = "T(com.qamcore.backend.common.context.TenantContext).getTenantId()")
-    public List<StaffListItemResponse> getAllPsychologists() {
+    @Cacheable(value = "staffList", key = "T(com.qamcore.backend.common.context.TenantContext).getTenantId()")
+    public List<StaffListItemResponse> getAllStaff() {
         Long tenantId = TenantContext.getTenantId();
 
-        return userRepository.findAllByTenantIdAndRole(tenantId, Role.PSYCHOLOGIST).stream()
+        return userRepository.findAllByTenantId(tenantId).stream()
+                .filter(user -> user.getRole() == Role.PSYCHOLOGIST || user.getRole() == Role.TEACHER)
                 .map(user -> StaffListItemResponse.builder()
                         .id(user.getId())
                         .username(user.getUsername())

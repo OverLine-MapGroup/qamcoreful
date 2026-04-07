@@ -10,7 +10,7 @@ interface AuthState {
   setAuth: (data: {
     token: string;
     role: "STUDENT" | "PSYCHOLOGIST" | "SCHOOL_ADMIN" | "ADMIN" | "SUPER_ADMIN";
-    orgId: string;
+    orgId?: string | null;
   }) => void;
   logout: () => void;
 }
@@ -36,7 +36,19 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name);
+          if (!str) return null;
+          return JSON.parse(str);
+        },
+        setItem: (name, value) => {
+          localStorage.setItem(name, JSON.stringify(value));
+        },
+        removeItem: (name) => localStorage.removeItem(name),
+      },
       onRehydrateStorage: () => (state) => {
+        console.log("[AUTH STORE] Rehydrated state:", state);
         state?.setHydrated(true);
       },
     }

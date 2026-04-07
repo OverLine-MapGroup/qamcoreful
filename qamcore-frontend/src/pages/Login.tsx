@@ -28,6 +28,7 @@ export default function Login() {
       logout();
 
       const response = await login({ username: inviteCode, password });
+      console.log("Full Backend Response:", response);
 
       const userRole = response.role || "STUDENT";
       const correctedRole =
@@ -35,10 +36,17 @@ export default function Login() {
           ? "SCHOOL_ADMIN"
           : userRole;
 
+      const token = response.accessToken;
+      
+      if (!token) {
+        console.error("Login Error: No accessToken found in response", response);
+        throw new Error("Invalid response from server: No accessToken found");
+      }
+
       setAuth({
-        token: response.accessToken,
+        token: response.accessToken as string,
         role: correctedRole,
-        orgId: "KAZATU",
+        orgId: response.orgId || "0",
       });
 
       if (correctedRole === "PSYCHOLOGIST") {

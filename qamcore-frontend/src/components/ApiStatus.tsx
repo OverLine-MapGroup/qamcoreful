@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api/client";
+import { useAuthStore } from "../store/auth";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function ApiStatus() {

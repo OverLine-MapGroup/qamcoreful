@@ -5,6 +5,8 @@ export interface JwtAuthenticationResponse {
   refreshToken: string;
   username: string;
   role: "STUDENT" | "PSYCHOLOGIST" | "SCHOOL_ADMIN" | "ADMIN" | "SUPER_ADMIN";
+  token?: string; // Add optional token for compatibility
+  orgId?: string; // Add optional orgId for compatibility
 }
 
 export interface RegisterRequest {

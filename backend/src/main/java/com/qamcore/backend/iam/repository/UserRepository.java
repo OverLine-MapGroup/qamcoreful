@@ -14,5 +14,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
     List<User> findAllByGroupId(Long id);
     long countByTenantId(Long tenantId);
+    List<User> findAllByTenantId(Long tenantId);
     List<User> findAllByTenantIdAndRole(Long tenantId, Role role);
 }

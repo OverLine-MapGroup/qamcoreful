@@ -8,7 +8,7 @@ async function prepare() {
   // Запускаем моки только если включён флаг
   // Включить: localStorage.setItem('msw', 'true') + перезагрузить
   // Выключить: localStorage.removeItem('msw') + перезагрузить
-  if (localStorage.getItem("msw") === "true") {
+  if (localStorage.getItem("msw") === "false") {
     const { worker } = await import("./mocks/browser");
     await worker.start({
       onUnhandledRequest: "bypass", // не перехваченные запросы идут на реальный бэк

@@ -55,7 +55,7 @@ public class SchoolAdminController {
 
     @GetMapping("/staff")
     public ResponseEntity<List<StaffListItemResponse>> getAllStaff() {
-        return ResponseEntity.ok(userService.getAllPsychologists());
+        return ResponseEntity.ok(userService.getAllStaff());
     }
 
     @PostMapping("/groups")

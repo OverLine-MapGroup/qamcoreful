@@ -23,7 +23,10 @@ public class InitialDataConfig {
                                          TenantRepository tenantRepo,
                                          PasswordEncoder passwordEncoder) {
         return args -> {
-            if (userRepo.count() == 0) {
+            // Force Admin Creation: Delete existing super-admin-1 if present to ensure password fix
+            userRepo.findByUsername("super-admin-1").ifPresent(user -> userRepo.delete(user));
+
+            if (userRepo.count() == 0 || !userRepo.existsByUsername("super-admin-1")) {
                 Tenant systemTenant = tenantRepo.findByName("SYSTEM")
                         .orElseGet(() -> tenantRepo.save(Tenant.builder().name("SYSTEM").build()));
 
