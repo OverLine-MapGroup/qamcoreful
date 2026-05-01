@@ -28,6 +28,15 @@ public class StudentController {
     private final BookingEventService bookingEventService;
     private final BusinessMetricsService businessMetricsService;
 
+    @GetMapping("/cases/active")
+    public ResponseEntity<StudentCaseResponse> getActiveCase(@AuthenticationPrincipal User student) {
+        List<StudentCaseResponse> activeCases = caseService.getActiveCasesForStudent(student);
+        if (activeCases.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(activeCases.get(0));
+    }
+
     @GetMapping("/messages")
     public ResponseEntity<List<StudentCaseResponse>> getMyMessages(@AuthenticationPrincipal User student) {
         return ResponseEntity.ok(caseService.getActiveCasesForStudent(student));

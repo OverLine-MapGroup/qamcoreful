@@ -12,6 +12,7 @@ import com.qamcore.backend.common.metrics.BusinessMetricsService;
 import com.qamcore.backend.iam.model.User;
 import com.qamcore.backend.iam.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ public class StudentCaseService {
     private final StudentCaseRepository caseRepository;
     private final UserRepository userRepository;
     private final BusinessMetricsService metricsService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
     public StudentCaseResponse openCase(Long studentId, User psychologist, OpenCaseRequest request) {
@@ -35,24 +37,42 @@ public class StudentCaseService {
             throw new AccessDeniedException("error.student.case.access_denied.other_school");
         }
 
-        if (caseRepository.existsByStudentIdAndStatus(studentId, CaseStatus.OPEN)) {
-            throw new BusinessValidationException("error.student.case.active_already_exists");
+        StudentCase existingCase = caseRepository.findByStudentIdAndStatus(studentId, CaseStatus.OPEN);
+        
+        if (existingCase != null) {
+            // Update existing case with new message and timestamp
+            existingCase.setIntroMessage(request.getMessage());
+            existingCase.setCommunicationLink(request.getCommunicationLink());
+            existingCase.setUpdatedAt(LocalDateTime.now());
+            
+            existingCase = caseRepository.save(existingCase);
+            
+            // Publish real-time notification to student about case update
+            String channelName = "student:" + studentId + ":notifications";
+            redisTemplate.convertAndSend(channelName, mapToResponse(existingCase));
+            
+            return mapToResponse(existingCase);
+        } else {
+            // Create new case
+            StudentCase newCase = StudentCase.builder()
+                    .student(student)
+                    .psychologist(psychologist)
+                    .tenantId(student.getTenant().getId())
+                    .status(CaseStatus.OPEN)
+                    .introMessage(request.getMessage())
+                    .communicationLink(request.getCommunicationLink())
+                    .build();
+
+            newCase = caseRepository.save(newCase);
+
+            metricsService.incrementStudentContacted();
+
+            // Publish real-time notification to student about new case
+            String channelName = "student:" + studentId + ":notifications";
+            redisTemplate.convertAndSend(channelName, mapToResponse(newCase));
+
+            return mapToResponse(newCase);
         }
-
-        StudentCase newCase = StudentCase.builder()
-                .student(student)
-                .psychologist(psychologist)
-                .tenantId(student.getTenant().getId())
-                .status(CaseStatus.OPEN)
-                .introMessage(request.getMessage())
-                .communicationLink(request.getCommunicationLink())
-                .build();
-
-        newCase = caseRepository.save(newCase);
-
-        metricsService.incrementStudentContacted();
-
-        return mapToResponse(newCase);
     }
 
     @Transactional
@@ -79,6 +99,12 @@ public class StudentCaseService {
 
     public List<StudentCaseResponse> getActiveCasesForStudent(User student) {
         return caseRepository.findAllByStudentIdAndStatusOrderByCreatedAtDesc(student.getId(), CaseStatus.OPEN).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<StudentCaseResponse> getActiveCasesForPsychologist(User psychologist) {
+        return caseRepository.findAllByPsychologistIdAndStatusOrderByCreatedAtDesc(psychologist.getId(), CaseStatus.OPEN).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }

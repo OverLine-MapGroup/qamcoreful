@@ -21,12 +21,21 @@ export interface CreateComplaintRequest {
   text: string;
 }
 
-// Student Messages
+export const getStudentActiveCase = async (): Promise<PsychologistCase | null> => {
+  try {
+    return await api("/api/v1/student/cases/active");
+  } catch (error) {
+    if (error instanceof Response && error.status === 204) {
+      return null;
+    }
+    throw error;
+  }
+};
+
 export const getStudentMessages = async (): Promise<PsychologistCase[]> => {
   return api("/api/v1/student/messages");
 };
 
-// Student Complaints
 export const createComplaint = async (data: CreateComplaintRequest): Promise<void> => {
   return api("/api/v1/student/complaints", {
     method: "POST",
@@ -34,12 +43,10 @@ export const createComplaint = async (data: CreateComplaintRequest): Promise<voi
   });
 };
 
-// Get Psychologists for Booking
 export const getPsychologists = async (): Promise<Psychologist[]> => {
   return api("/api/v1/student/psychologists");
 };
 
-// Track Booking Click
 export const trackBookingClick = async (psychologistId: number): Promise<void> => {
   return api(`/api/v1/student/psychologists/${psychologistId}/book-click`, {
     method: "POST",

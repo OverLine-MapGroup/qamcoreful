@@ -18,7 +18,7 @@ export interface ActiveCheckInResponse {
   questions: Question[];
 }
 
-export interface CheckInSubmission {
+export interface CheckInResultRequest {
   checkinId: string;
   answers: Record<string, number>;
 }
@@ -33,7 +33,7 @@ export const getActiveCheckIn = async (): Promise<ActiveCheckInResponse> => {
   return api("/api/v1/checkins/active");
 };
 
-export const submitCheckIn = async (data: CheckInSubmission): Promise<CheckInResult> => {
+export const submitCheckIn = async (data: CheckInResultRequest): Promise<CheckInResult> => {
   return api("/api/v1/checkins", {
     method: "POST",
     body: JSON.stringify(data),

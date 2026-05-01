@@ -22,20 +22,11 @@ public interface CheckInRepository extends JpaRepository<CheckIn, Long> {
             @Param("afterDate") LocalDateTime afterDate
     );
 
-    @Query(value = "SELECT DISTINCT ON (user_id) * FROM checkins WHERE user_id IN :userIds ORDER BY user_id, created_at DESC", nativeQuery = true)
-    List<CheckIn> findLatestCheckInsByUserIds(@Param("userIds") List<Long> userIds);
-
     Page<CheckIn> findAllByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 
-    @Query(value = "SELECT * FROM (SELECT DISTINCT ON (user_id) * FROM checkins WHERE tenant_id = :tenantId ORDER BY user_id, created_at DESC) AS latest " +
-            "WHERE (CAST(:filter AS text) = '' OR CAST(risk_level AS text) = :filter)",
-            countQuery = "SELECT count(*) FROM (SELECT DISTINCT ON (user_id) * FROM checkins WHERE tenant_id = :tenantId ORDER BY user_id, created_at DESC) AS latest " +
-                    "WHERE (CAST(:filter AS text) = '' OR CAST(risk_level AS text) = :filter)",
-            nativeQuery = true)
-    Page<CheckIn> findLatestCheckInsPaged(@Param("tenantId") Long tenantId, @Param("filter") String filter, Pageable pageable);
+    List<CheckIn> findAllByTenantId(Long tenantId);
 
-    @Query(value = "SELECT DISTINCT ON (user_id) * FROM checkins WHERE tenant_id = :tenantId ORDER BY user_id, created_at DESC", nativeQuery = true)
-    List<CheckIn> findLatestCheckInsByTenant(@Param("tenantId") Long tenantId);
+    List<CheckIn> findAllByUserIdIn(List<Long> userIds);
 
     @Query("SELECT count(c) FROM CheckIn c WHERE c.tenantId = :tenantId AND c.createdAt >= :startOfDay")
     long countActiveToday(@Param("tenantId") Long tenantId, @Param("startOfDay") LocalDateTime startOfDay);

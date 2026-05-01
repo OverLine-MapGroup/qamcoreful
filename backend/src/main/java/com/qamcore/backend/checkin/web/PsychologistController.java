@@ -27,7 +27,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/psychologist")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('PSYCHOLOGIST')")
+@PreAuthorize("hasAuthority('ROLE_PSYCHOLOGIST')")
 public class PsychologistController {
     private final PsychologistService psychologistService;
     private final StudentCaseService caseService;
@@ -72,6 +72,12 @@ public class PsychologistController {
             @AuthenticationPrincipal User psychologist) {
         caseService.resolveCase(caseId, psychologist);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/cases/active")
+    public ResponseEntity<List<StudentCaseResponse>> getActiveCases(
+            @AuthenticationPrincipal User psychologist) {
+        return ResponseEntity.ok(caseService.getActiveCasesForPsychologist(psychologist));
     }
 
     @GetMapping("/students/{studentId}/cases")

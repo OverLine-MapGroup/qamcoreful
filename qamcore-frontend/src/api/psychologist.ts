@@ -112,12 +112,10 @@ export const fetchStudents = async (filter?: string): Promise<StudentRiskDto[]> 
   const url = filter ? `/api/v1/psychologist/students?filter=${filter}` : "/api/v1/psychologist/students";
   const response = await api(url);
   
-  // Handle paginated response
   if (response && typeof response === 'object' && 'content' in response) {
     return response.content || [];
   }
   
-  // Handle direct array response
   return Array.isArray(response) ? response : [];
 };
 
@@ -129,7 +127,6 @@ export const fetchDashboardStats = async (): Promise<DashboardStats> => {
   return api("/api/v1/psychologist/dashboard/stats");
 };
 
-// Case System Functions
 export const createCase = async (studentId: number, data: CreateCaseRequest): Promise<PsychologistCase> => {
   return api(`/api/v1/psychologist/students/${studentId}/cases`, {
     method: "POST",
@@ -143,11 +140,14 @@ export const resolveCase = async (caseId: number): Promise<void> => {
   });
 };
 
+export const getActiveCases = async (): Promise<PsychologistCase[]> => {
+  return api("/api/v1/psychologist/cases/active");
+};
+
 export const getStudentCases = async (studentId: number): Promise<PsychologistCase[]> => {
   return api(`/api/v1/psychologist/students/${studentId}/cases`);
 };
 
-// Complaint System Functions
 export const getPsychologistComplaints = async (page: number = 0, size: number = 20): Promise<PaginatedResponse<Complaint>> => {
   return api(`/api/v1/psychologist/complaints?page=${page}&size=${size}`);
 };
@@ -159,7 +159,6 @@ export const resolvePsychologistComplaint = async (complaintId: number, data: Re
   });
 };
 
-// Booking URL Update
 export const updateBookingUrl = async (bookingUrl: string): Promise<void> => {
   return api("/api/v1/psychologist/profile/booking-url", {
     method: "PATCH",

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { getActiveCheckIn, submitCheckIn } from "../api/checkin";
+import { getActiveCheckIn, submitCheckIn, CheckInResultRequest } from "../api/checkin";
 import { useNavigate } from "react-router-dom";
 import { Question } from "../api/checkin";
 import { CheckCircle, MessageSquare, TrendingUp, ArrowRight, ArrowLeft } from "lucide-react";
@@ -101,6 +101,7 @@ export default function Checkin() {
       try {
         const checkIn = await getActiveCheckIn();
         console.log("Loaded check-in:", checkIn);
+        console.log("CheckinId from response:", checkIn.checkinId);
 
         if (!checkIn.questions || checkIn.questions.length === 0) {
           setLoadState("no_checkin");
@@ -108,7 +109,13 @@ export default function Checkin() {
         }
 
         setQuestions(checkIn.questions);
-        setCheckinId(checkIn.checkinId);
+        // Only set checkinId if it exists and questions are available
+        if (checkIn.checkinId && checkIn.questions && checkIn.questions.length > 0) {
+          setCheckinId(checkIn.checkinId);
+          console.log("Set checkinId to:", checkIn.checkinId);
+        } else {
+          console.log("No checkinId or questions available");
+        }
         setLoadState("trust"); // Сначала показываем экран доверия
       } catch (error: any) {
         console.error("Failed to load check-in:", error);
@@ -377,11 +384,14 @@ export default function Checkin() {
     if (currentQuestionIndex === questions.length - 1) {
       // Last question - submit check-in
       setSubmitting(true);
+      const submitPayload = {
+        checkinId,
+        answers: newAnswers,
+      } as CheckInResultRequest;
+      console.log("Submitting check-in with payload:", submitPayload);
+      console.log("checkinId value:", checkinId);
       try {
-        await submitCheckIn({
-          checkinId,
-          answers: newAnswers,
-        });
+        await submitCheckIn(submitPayload);
         navigate("/success");
       } catch (error) {
         console.error("Failed to submit check-in:", error);

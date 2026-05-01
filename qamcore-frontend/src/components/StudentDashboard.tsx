@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStudentMessages, PsychologistCase, createComplaint, CreateComplaintRequest } from '../api/student';
+import { getStudentActiveCase, PsychologistCase, createComplaint, CreateComplaintRequest } from '../api/student';
 import { useAuthStore } from '../store/auth';
 import {
   Bell, Info, Home, User, Calendar, AlertTriangle,
@@ -19,10 +19,11 @@ const CLUBS = [
 ];
 
 const COMPLAINT_CATEGORIES = [
-  { id: 'BULLYING',       label: 'Буллинг',       icon: '😔' },
-  { id: 'DEPRESSION',     label: 'Депрессия',      icon: '💙' },
-  { id: 'TEACHER',        label: 'Учитель',        icon: '⚠️' },
-  { id: 'INFRASTRUCTURE', label: 'Инфраструктура', icon: '🏗️' },
+  { id: 'BULLYING',       label: 'âóëëèíã',       icon: 'ð' },
+  { id: 'HARASSMENT',     label: 'Õàðàññìåíò',      icon: 'â ï' },
+  { id: 'DISCRIMINATION', label: 'Äèñêðèìèíàöèÿ', icon: 'â ï' },
+  { id: 'SAFETY',         label: 'Áåçîïàñíîñòü',    icon: 'â ï' },
+  { id: 'OTHER',          label: 'Äðóãîå',          icon: 'â ï' },
 ];
 
 const THEMES = {
@@ -60,11 +61,16 @@ function hexToRgb(hex: string) {
   return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
 }
 
+function formatCommunicationLink(link: string): string {
+  if (!link) return '';
+  return link.startsWith('http') ? link : `https://${link}`;
+}
+
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { logout } = useAuthStore();
 
-  const [messages, setMessages]                   = useState<PsychologistCase[]>([]);
+  const [activeCase, setActiveCase]               = useState<PsychologistCase | null>(null);
   const [loading, setLoading]                     = useState(true);
   const [activeTab, setActiveTab]                 = useState<Tab>('home');
   const [modal, setModal]                         = useState<Modal>('none');
@@ -80,10 +86,59 @@ export const StudentDashboard: React.FC = () => {
   const DA = '#ef4444';
 
   useEffect(() => {
-    getStudentMessages()
-      .then(d => setMessages(d || []))
-      .catch(() => setMessages([]))
+    getStudentActiveCase()
+      .then(setActiveCase)
+      .catch(() => setActiveCase(null))
       .finally(() => setLoading(false));
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
+    let eventSource = new EventSource(`/api/v1/notifications/subscribe?token=${encodeURIComponent(token)}`);
+    let reconnectTimeout: number | null = null;
+    let isCleaningUp = false;
+    
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const notification = JSON.parse(event.data);
+        if (notification && notification.caseId && !isCleaningUp) {
+          setActiveCase(notification);
+        }
+      } catch (error) {
+      }
+    };
+
+    const handleError = () => {
+      eventSource.close();
+      
+      if (isCleaningUp) return;
+      
+      const reconnectDelay = Math.min(1000 * Math.pow(2, (reconnectTimeout ? 1 : 0)), 30000);
+      
+      reconnectTimeout = setTimeout(() => {
+        if (!isCleaningUp) {
+          const newEventSource = new EventSource(`/api/v1/notifications/subscribe?token=${encodeURIComponent(token)}`);
+          
+          newEventSource.onmessage = handleMessage;
+          newEventSource.onerror = handleError;
+          
+          eventSource = newEventSource;
+        }
+      }, reconnectDelay);
+    };
+
+    eventSource.onmessage = handleMessage;
+    eventSource.onerror = handleError;
+
+    return () => {
+      isCleaningUp = true;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      eventSource.close();
+    };
   }, []);
 
   const switchTheme = (next: Theme) => { setTheme(next); localStorage.setItem('theme', next); };
@@ -162,7 +217,7 @@ export const StudentDashboard: React.FC = () => {
           </button>
           <button onClick={() => setModal('notifications')} style={{ ...btn0, position: 'relative', width: 44, height: 44, background: 'white', borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Bell size={22} style={{ color: t.mutedDark }} strokeWidth={1.8} />
-            {messages.length > 0 && <span style={{ position: 'absolute', top: 7, right: 7, width: 8, height: 8, borderRadius: '50%', background: DA, border: `2px solid ${t.bg}` }} />}
+            {activeCase && <span style={{ position: 'absolute', top: 7, right: 7, width: 8, height: 8, borderRadius: '50%', background: DA, border: `2px solid ${t.bg}` }} />}
           </button>
         </div>
       </header>
@@ -299,21 +354,26 @@ export const StudentDashboard: React.FC = () => {
       {modal === 'notifications' && (
         <Overlay>
           <MHeader title="Уведомления" subtitle="Сообщения от психолога" />
-          {messages.length === 0 ? (
+          {!activeCase ? (
             <div style={{ textAlign: 'center', padding: '28px 0', color: t.muted }}>
               <Bell size={36} style={{ opacity: 0.2, marginBottom: 10 }} />
               <p style={{ margin: 0, fontSize: 14 }}>Нет новых уведомлений</p>
             </div>
-          ) : messages.map(msg => (
-            <div key={msg.caseId} onClick={() => msg.communicationLink && window.open(msg.communicationLink, '_blank')}
+          ) : (
+            <div onClick={() => {
+              const formattedLink = formatCommunicationLink(activeCase.communicationLink);
+              if (formattedLink) {
+                window.open(formattedLink, '_blank', 'noopener,noreferrer');
+              }
+            }}
               style={{ ...card(), padding: 16, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: t.text }}>{msg.psychologistName}</p>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: t.muted, lineHeight: 1.4 }}>{msg.message}</p>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: t.text }}>{activeCase.psychologistName}</p>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: t.muted, lineHeight: 1.4 }}>{activeCase.message}</p>
               </div>
               <ExternalLink size={16} style={{ color: PR, flexShrink: 0 }} />
             </div>
-          ))}
+          )}
         </Overlay>
       )}
 
@@ -389,7 +449,7 @@ export const StudentDashboard: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={() => setComplaintStep(2)} style={{ flex: 1, height: 52, borderRadius: 16, border: `1px solid ${t.border}`, background: 'transparent', color: t.text, fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Назад</button>
-                  <button onClick={handleComplaintSubmit} style={{ flex: 1, height: 52, borderRadius: 16, border: 'none', background: '#2a6049', color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#2a6049' }}>
+                  <button onClick={handleComplaintSubmit} style={{ flex: 1, height: 52, borderRadius: 16, border: 'none', background: '#2a6049', color: 'white', fontWeight: 700, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                     <Send size={16} /> Отправить
                   </button>
                 </div>

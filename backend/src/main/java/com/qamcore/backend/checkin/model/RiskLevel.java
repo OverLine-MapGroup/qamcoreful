@@ -1,5 +1,5 @@
 package com.qamcore.backend.checkin.model;
 
 public enum RiskLevel {
-    LOW, MEDIUM, RED
+    LOW, MEDIUM, HIGH, RED
 }

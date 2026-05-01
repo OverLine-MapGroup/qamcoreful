@@ -14,41 +14,53 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [credentials, setCredentials] = useState({ username: "", password: "" });
 
   const submitRegister = async () => {
     setError("");
 
     if (!inviteCode || !password) {
-      setError("Заполните все поля");
+      setError("Fill all fields");
       return;
     }
     if (password !== confirmPassword) {
-      setError("Пароли не совпадают");
+      setError("Passwords don't match");
       return;
     }
     if (password.length < 4) {
-      setError("Пароль должен содержать минимум 4 символа");
+      setError("Password must be at least 4 characters");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const response = await registerAnonymous({ inviteCode, password });
+      const cleanCode = inviteCode.trim().replace(/\s+/g, '');
+      const response = await registerAnonymous({ inviteCode: cleanCode, password });
+      
+      // Store credentials for display
+      setCredentials({
+        username: response.username,
+        password: password
+      });
+      
+      // Set auth state
       setAuth({
         token: response.accessToken,
         role: response.role || "STUDENT",
-        orgId: "KAZATU",
+        orgId: response.orgId || "KAZATU",
       });
-      navigate("/student-dashboard");
+      
+      // Show credentials screen
+      setShowCredentials(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка регистрации");
+      setError(err instanceof Error ? err.message : "Registration error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // FIX: submit on Enter key
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !isLoading && inviteCode && password && confirmPassword) {
       submitRegister();
@@ -70,7 +82,6 @@ export default function Register() {
 
   return (
     <div style={{ minHeight: "100vh", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", background: "#fafcff" }}>
-
       {/* Animated background blobs */}
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflow: "hidden", pointerEvents: "none" }}>
         <div style={{ position: "absolute", inset: 0, background: "#fafcff" }} />
@@ -106,8 +117,8 @@ export default function Register() {
           <div style={{ margin: "0 auto", marginBottom: "0.5rem", display: "flex", justifyContent: "center", alignItems: "center", height: "3.5rem", width: "3.5rem", borderRadius: "0.75rem", background: "#72a5f8", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}>
             <UserPlus style={{ height: "1.75rem", width: "1.75rem", color: "white" }} />
           </div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#2e2e2e", marginBottom: "0.375rem" }}>Создать аккаунт</h1>
-          <p style={{ marginTop: "0.375rem", fontSize: "0.875rem", color: "#6b7280" }}>Введите invite code и придумайте пароль</p>
+          <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#2e2e2e", marginBottom: "0.375rem" }}>Create Account</h1>
+          <p style={{ marginTop: "0.375rem", fontSize: "0.875rem", color: "#6b7280" }}>Enter invite code and create password</p>
         </motion.div>
 
         {/* Features */}
@@ -117,9 +128,9 @@ export default function Register() {
         >
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem", marginBottom: "1.5rem" }}>
             {[
-              { Icon: Bot, label: "AI поддержка 24/7", sub: "Всегда рядом" },
-              { Icon: Shield, label: "Полная анонимность", sub: "Ваши данные защищены" },
-              { Icon: Users, label: "Сообщество", sub: "Поддержка коллег" },
+              { Icon: Bot, label: "AI Support 24/7", sub: "Always here" },
+              { Icon: Shield, label: "Full Anonymity", sub: "Your data is protected" },
+              { Icon: Users, label: "Community", sub: "Peer support" },
             ].map(({ Icon, label, sub }) => (
               <div key={label} style={{ textAlign: "center", padding: "0.5rem", borderRadius: "0.375rem" }}>
                 <Icon style={{ height: "1.25rem", width: "1.25rem", margin: "0 auto 0.125rem", color: "#72a5f8" }} />
@@ -153,7 +164,7 @@ export default function Register() {
               </div>
               <input
                 style={inputStyle}
-                placeholder="Введите ваш invite code"
+                placeholder="Enter your invite code"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -173,7 +184,7 @@ export default function Register() {
               <input
                 type="password"
                 style={inputStyle}
-                placeholder="Придумайте пароль"
+                placeholder="Create password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -193,7 +204,7 @@ export default function Register() {
               <input
                 type="password"
                 style={inputStyle}
-                placeholder="Подтвердите пароль"
+                placeholder="Confirm password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -232,14 +243,222 @@ export default function Register() {
           style={{ marginTop: "1.5rem", textAlign: "center" }}
         >
           <p style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
-            Уже есть аккаунт?{" "}
+            Already have an account?{" "}
             <button onClick={() => navigate("/login")} style={{ color: "#72a5f8", fontWeight: "500", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-              Войти
+              Login
             </button>
           </p>
-          <p style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "#94a3b8" }}>Нет invite code? Свяжитесь с администратором вашей организации.</p>
+          <p style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "#94a3b8" }}>No invite code? Contact your organization administrator.</p>
         </motion.div>
       </motion.div>
+
+      {/* Credentials Display Screen */}
+      {showCredentials && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          style={{ 
+            position: "fixed", 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            background: "rgba(0, 0, 0, 0.5)", 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "center", 
+            padding: "1rem",
+            zIndex: 1000
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            style={{ 
+              width: "100%", 
+              maxWidth: "28rem", 
+              background: "rgba(255, 255, 255, 0.95)", 
+              backdropFilter: "blur(40px)", 
+              borderRadius: "1rem", 
+              padding: "2rem", 
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)", 
+              border: "1px solid rgba(255, 255, 255, 0.8)" 
+            }}
+          >
+            {/* Success Icon */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              style={{ 
+                margin: "0 auto", 
+                marginBottom: "1.5rem", 
+                display: "flex", 
+                justifyContent: "center", 
+                alignItems: "center", 
+                height: "4rem", 
+                width: "4rem", 
+                borderRadius: "50%", 
+                background: "#10b981", 
+                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" 
+              }}
+            >
+              <span style={{ fontSize: "2rem", color: "white" }}>Success!</span>
+            </motion.div>
+
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.3, duration: 0.5 }}
+              style={{ marginBottom: "2rem", textAlign: "center" }}
+            >
+              <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#2e2e2e", marginBottom: "0.5rem" }}>
+                Account Created Successfully!
+              </h1>
+              <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>
+                Please save your login credentials for future access
+              </p>
+            </motion.div>
+
+            {/* Credentials Display */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.4, duration: 0.5 }}
+              style={{ marginBottom: "2rem" }}
+            >
+              <div style={{ 
+                background: "rgba(79, 100, 255, 0.1)", 
+                borderRadius: "0.75rem", 
+                border: "1px solid rgba(79, 100, 255, 0.3)", 
+                padding: "1.5rem",
+                marginBottom: "1rem"
+              }}>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.75rem", fontWeight: "600", color: "#4f64ff", textTransform: "uppercase" }}>
+                  Username
+                </label>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.5rem",
+                  background: "white", 
+                  padding: "0.75rem 1rem", 
+                  borderRadius: "0.5rem", 
+                  border: "1px solid rgba(79, 100, 255, 0.2)",
+                  fontSize: "0.875rem",
+                  fontWeight: "500",
+                  color: "#2e2e2e"
+                }}>
+                  <span style={{ flex: 1 }}>{credentials.username}</span>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(credentials.username)}
+                    style={{ 
+                      background: "none", 
+                      border: "none", 
+                      color: "#4f64ff", 
+                      cursor: "pointer",
+                      padding: "0.25rem"
+                    }}
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ 
+                background: "rgba(79, 100, 255, 0.1)", 
+                borderRadius: "0.75rem", 
+                border: "1px solid rgba(79, 100, 255, 0.3)", 
+                padding: "1.5rem"
+              }}>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.75rem", fontWeight: "600", color: "#4f64ff", textTransform: "uppercase" }}>
+                  Password
+                </label>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.5rem",
+                  background: "white", 
+                  padding: "0.75rem 1rem", 
+                  borderRadius: "0.5rem", 
+                  border: "1px solid rgba(79, 100, 255, 0.2)",
+                  fontSize: "0.875rem",
+                  fontWeight: "500",
+                  color: "#2e2e2e"
+                }}>
+                  <span style={{ flex: 1 }}>{"*".repeat(credentials.password.length)}</span>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(credentials.password)}
+                    style={{ 
+                      background: "none", 
+                      border: "none", 
+                      color: "#4f64ff", 
+                      cursor: "pointer",
+                      padding: "0.25rem"
+                    }}
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Warning Message */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.5, duration: 0.5 }}
+              style={{ 
+                marginBottom: "2rem", 
+                padding: "1rem", 
+                background: "rgba(251, 191, 36, 0.1)", 
+                border: "1px solid rgba(251, 191, 36, 0.3)", 
+                borderRadius: "0.5rem",
+                textAlign: "center"
+              }}
+            >
+              <p style={{ fontSize: "0.75rem", color: "#92400e", margin: 0 }}>
+                <strong>Important:</strong> Save these credentials securely. You'll need them to login without the invite code.
+              </p>
+            </motion.div>
+
+            {/* Continue Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: 0.6, duration: 0.5 }}
+            >
+              <motion.button
+                whileHover={{ scale: 1.02 }} 
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate("/student-dashboard")}
+                style={{ 
+                  display: "flex", 
+                  width: "100%", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  gap: "0.625rem", 
+                  borderRadius: "0.75rem", 
+                  background: "#4f64ff", 
+                  padding: "0.875rem 1.5rem", 
+                  fontSize: "0.875rem", 
+                  fontWeight: "600", 
+                  color: "white", 
+                  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", 
+                  transition: "all 0.2s ease", 
+                  border: "none", 
+                  cursor: "pointer" 
+                }}
+              >
+                <span>Continue to Dashboard</span>
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }

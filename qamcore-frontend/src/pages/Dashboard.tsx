@@ -338,15 +338,25 @@ export default function Dashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [studentsData, statsData] = await Promise.all([
-          fetchStudents(),
-          fetchDashboardStats(),
-        ]);
+        // Fetch students independently
+        try {
+          const studentsData = await fetchStudents();
+          setStudents(studentsData);
+        } catch (studentsError) {
+          console.error("Students fetch error:", studentsError);
+          setStudents([]); // Set empty array on error
+        }
         
-        setStudents(studentsData);
-        setStats(statsData);
+        // Fetch stats independently
+        try {
+          const statsData = await fetchDashboardStats();
+          setStats(statsData);
+        } catch (statsError) {
+          console.error("Stats fetch error:", statsError);
+          setStats(null); // Set null on error
+        }
       } catch (error) {
-        console.error("Dashboard fetch error:", error);
+        console.error("Dashboard load error:", error);
       } finally {
         setLoading(false);
       }
@@ -356,18 +366,18 @@ export default function Dashboard() {
 
   const generatePDF = () => {
     const data = students.map((s) => ({
-      displayName: s.displayName,
-      riskLevel: s.riskLevel,
-      riskScore: s.riskScore,
-      lastCheckInAt: s.lastCheckInAt,
-      hasSos: s.hasSos,
+      displayName: s.displayName || "Unknown",
+      riskLevel: s.riskLevel || "UNKNOWN",
+      riskScore: s.riskScore || 0,
+      lastCheckInAt: s.lastCheckInAt || null,
+      hasSos: s.hasSos || false,
     }));
     generateStudentsPDF(data);
   };
 
   /* ── derived stats ── */
   const criticalStudents = students.filter(
-    (s) => s.riskLevel === "RED" || s.riskLevel === "HIGH"
+    (s) => s.riskLevel === "HIGH"
   );
   const warningStudents = students.filter((s) => s.riskLevel === "MEDIUM");
   const stableStudents = students.filter((s) => s.riskLevel === "LOW");
@@ -382,7 +392,6 @@ export default function Dashboard() {
   /* ── Priority sorting for Critical Tokens Table ── */
   const getRiskPriority = (level: string) => {
     switch (level) {
-      case "RED":
       case "HIGH":
         return 1; // Critical - highest priority
       case "MEDIUM":
@@ -938,10 +947,10 @@ export default function Dashboard() {
                         </td>
                         <td style={{ padding: "1rem 1.25rem" }}>
                           <p style={{ fontSize: "0.82rem", fontWeight: 600, color: "#1a1c1e", margin: 0 }}>
-                            {s.displayName.split("/")[0]?.trim() || s.displayName}
+                            {s.displayName?.split("/")[0]?.trim() || s.displayName || "Unknown"}
                           </p>
                           <p style={{ fontSize: "0.75rem", color: "#6b7280", margin: 0 }}>
-                            {s.displayName.split("/")[1]?.trim() || ""}
+                            {s.displayName?.split("/")[1]?.trim() || ""}
                           </p>
                         </td>
                         <td style={{ padding: "1rem 1.25rem", fontSize: "0.82rem", color: "#6b7280" }}>

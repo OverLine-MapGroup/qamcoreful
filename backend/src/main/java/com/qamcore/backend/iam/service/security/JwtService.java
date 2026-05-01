@@ -31,6 +31,10 @@ public class JwtService {
         return extractClaim(token, claims -> claims.get("tenantId", Long.class));
     }
 
+    public String extractRole(String token) {
+        return extractClaim(token, claims -> claims.get("role", String.class));
+    }
+
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
         if (userDetails instanceof User customUser) {
@@ -56,7 +60,7 @@ public class JwtService {
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + accessTokenDurationMs))
-                .signWith(getSigningKey())
+                .signWith(getSigningKey(), io.jsonwebtoken.SignatureAlgorithm.HS256)
                 .compact();
     }
 

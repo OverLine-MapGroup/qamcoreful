@@ -46,16 +46,25 @@ export default function SchoolAdminPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [statsData, groupsData, teachersData, analyticsData] = await Promise.all([
+        const [statsData, groupsData, teachersDataResult, analyticsData] = await Promise.allSettled([
           getSchoolStats(),
           getGroups(),
           getTeachers(),
           getParticipationAnalytics(),
         ]);
-        setStats(statsData);
-        setGroups(groupsData);
-        setTeachers(teachersData);
-        setAnalytics(analyticsData);
+
+        if (statsData.status === 'fulfilled') setStats(statsData.value);
+        if (groupsData.status === 'fulfilled') setGroups(groupsData.value);
+        
+        if (teachersDataResult.status === 'fulfilled') {
+          setTeachers(teachersDataResult.value);
+        } else {
+          console.error("Error loading teachers:", teachersDataResult.reason);
+          setTeachers([]); // Fallback to empty list
+        }
+        
+        if (analyticsData.status === 'fulfilled') setAnalytics(analyticsData.value);
+
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -74,37 +83,35 @@ export default function SchoolAdminPage() {
     const name = prompt("Введите название группы:");
     if (!name) return;
 
-    if (teachers.length === 0) {
-      alert("Нет доступных преподавателей. Сначала создайте преподавателя через раздел Staff (роль TEACHER).");
-      return;
+    let selectedTeacherId: number | null = null;
+
+    if (teachers.length > 0) {
+      const curatorOptions = teachers
+        .map((t, i) => `${i + 1}. ${t.username} (ID: ${t.id})`)
+        .join("\n");
+
+      const curatorSelection = prompt(
+        `Выберите куратора для группы "${name}" (оставьте пустым для пропуска):\n${curatorOptions}\n\nВведите НОМЕР из списка (1-${teachers.length}):`
+      );
+
+      if (curatorSelection) {
+        const curatorIndex = parseInt(curatorSelection) - 1;
+        if (!isNaN(curatorIndex) && curatorIndex >= 0 && curatorIndex < teachers.length) {
+          selectedTeacherId = teachers[curatorIndex].id;
+        } else {
+          alert("Неверный выбор куратора. Группа будет создана без куратора.");
+        }
+      }
     }
-
-    const curatorOptions = teachers
-      .map((t, i) => `${i + 1}. ${t.username} (ID: ${t.id})`)
-      .join("\n");
-
-    const curatorSelection = prompt(
-      `Выберите куратора для группы "${name}":\n${curatorOptions}\n\nВведите НОМЕР из списка (1-${teachers.length}):`
-    );
-    if (!curatorSelection) return;
-
-    const curatorIndex = parseInt(curatorSelection) - 1;
-    if (isNaN(curatorIndex) || curatorIndex < 0 || curatorIndex >= teachers.length) {
-      alert("Неверный выбор куратора. Пожалуйста, введите номер от 1 до " + teachers.length);
-      return;
-    }
-
-    const selectedTeacher = teachers[curatorIndex];
 
     try {
-      const newGroup = await createGroup({ name, curatorId: selectedTeacher.id });
+      const newGroup = await createGroup({ name, curatorId: selectedTeacherId });
       setGroups([...groups, newGroup]);
       
-      // Update stats as well
       const updatedStats = await getSchoolStats();
       setStats(updatedStats);
       
-      alert(`Группа "${name}" создана!\nКуратор: ${selectedTeacher.username}`);
+      alert(`Группа "${name}" создана!${selectedTeacherId ? `\nКуратор: ${teachers.find(t => t.id === selectedTeacherId)?.username}` : ""}`);
     } catch (error: any) {
       console.error("Error creating group:", error);
       alert(`Ошибка при создании группы: ${error?.message || "Unknown error"}`);
@@ -408,7 +415,7 @@ export default function SchoolAdminPage() {
                               whileHover={{ backgroundColor: "rgba(114, 165, 248, 0.1)" } as any}>
                               <td style={{ padding: "1rem", fontSize: "0.875rem", color: "#2e2e2e", fontWeight: "500" }}>{group.id}</td>
                               <td style={{ padding: "1rem", fontSize: "0.875rem", color: "#2e2e2e" }}>{group.name}</td>
-                              <td style={{ padding: "1rem", fontSize: "0.875rem", color: "#2e2e2e" }}>{group.curatorName}</td>
+                              <td style={{ padding: "1rem", fontSize: "0.875rem", color: "#2e2e2e" }}>{group.curatorName || 'Нет куратора'}</td>
                               <td style={{ padding: "1rem", textAlign: "right" }}>
                                 <ChevronRight size={18} color="#72a5f8" />
                               </td>
@@ -435,7 +442,7 @@ export default function SchoolAdminPage() {
                       <h2 style={{ fontSize: "1.5rem", fontWeight: "700", color: "#2e2e2e", margin: "0 0 0.5rem" }}>
                         Группа: {selectedGroup.groupName}
                       </h2>
-                      <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Куратор: {selectedGroup.curatorName}</p>
+                      <p style={{ color: "#6b7280", fontSize: "0.875rem" }}>Куратор: {selectedGroup.curatorName || 'Нет куратора'}</p>
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem", marginBottom: "2rem" }}>

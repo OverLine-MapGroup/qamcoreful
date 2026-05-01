@@ -40,12 +40,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**", "/api/v1/public/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/api/test/**").permitAll()
+                        .requestMatchers("/api/v1/notifications/subscribe").permitAll()
 
                         .requestMatchers("/api/v1/super-admin/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/v1/school-admin/**").hasAnyRole("ADMIN", "SCHOOL_ADMIN")
-                        .requestMatchers("/api/v1/psychologist/**").hasRole("PSYCHOLOGIST")
+                        .requestMatchers("/api/v1/psychologist/**").hasAuthority("ROLE_PSYCHOLOGIST")
                         .requestMatchers("/api/v1/student/**").hasRole("STUDENT")
-                        .requestMatchers("/api/v1/checkins/**").hasRole("STUDENT")
+                        .requestMatchers("/api/v1/checkins/**").permitAll()
 
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
@@ -69,7 +71,7 @@ public class SecurityConfig {
                 "http://localhost:5174"
         ));
 
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 

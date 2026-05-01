@@ -123,7 +123,7 @@ public class CheckInAnalyticsService {
         List<Long> studentIds = students.stream().map(User::getId).collect(Collectors.toList());
 
         List<CheckIn> latestCheckIns = studentIds.isEmpty() ? Collections.emptyList()
-                : checkInRepository.findLatestCheckInsByUserIds(studentIds);
+                : checkInRepository.findAllByUserIdIn(studentIds);
 
         Map<Long, CheckIn> latestCheckInMap = latestCheckIns.stream()
                 .collect(Collectors.toMap(c -> c.getUser().getId(), Function.identity()));

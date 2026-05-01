@@ -222,12 +222,13 @@ function ComplaintStatusBadge({ status }: { status: string }) {
    ───────────────────────────────────────────── */
 function CategoryBadge({ category }: { category: string }) {
   const cfg: Record<string, { bg: string; color: string; label: string }> = {
-    BULLYING: { bg: "#fee2e2", color: "#dc2626", label: "Буллинг" },
-    DEPRESSION: { bg: "#ddd6fe", color: "#7c3aed", label: "Депрессия" },
-    TEACHER: { bg: "#fed7aa", color: "#ea580c", label: "Учитель" },
-    INFRASTRUCTURE: { bg: "#d1fae5", color: "#059669", label: "Инфраструктура" },
+    BULLYING: { bg: "#fee2e2", color: "#dc2626", label: "âóëëèíã" },
+    HARASSMENT: { bg: "#ddd6fe", color: "#7c3aed", label: "Õàðàññìåíò" },
+    DISCRIMINATION: { bg: "#fed7aa", color: "#ea580c", label: "Äèñêðèìèíàöèÿ" },
+    SAFETY: { bg: "#d1fae5", color: "#059669", label: "Áåçîïàñíîñòü" },
+    OTHER: { bg: "#f3f4f6", color: "#6b7280", label: "Äðóãîå" },
   };
-  const c = cfg[category] ?? cfg["BULLYING"];
+  const c = cfg[category] ?? cfg["OTHER"];
   return (
     <span
       style={{
@@ -515,11 +516,12 @@ export default function Complaints() {
                   color: "#1a1c1e",
                 }}
               >
-                <option value="">Все категории</option>
-                <option value="BULLYING">Буллинг</option>
-                <option value="DEPRESSION">Депрессия</option>
-                <option value="TEACHER">Учитель</option>
-                <option value="INFRASTRUCTURE">Инфраструктура</option>
+                <option value="">All categories</option>
+                <option value="BULLYING">âóëëèíã</option>
+                <option value="HARASSMENT">Õàðàññìåíò</option>
+                <option value="DISCRIMINATION">Äèñêðèìèíàöèÿ</option>
+                <option value="SAFETY">Áåçîïàñíîñòü</option>
+                <option value="OTHER">Äðóãîå</option>
               </select>
 
               <div style={{ marginLeft: "auto", fontSize: "0.875rem", color: "#6b7280" }}>

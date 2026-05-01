@@ -33,6 +33,12 @@ public class CheckInService {
     private static final ZoneId ZONE_ID = ZoneId.of("Asia/Almaty");
 
     public ActiveCheckInResponse getActiveCheckIn(User user) {
+        if (user == null) {
+            throw new BusinessValidationException("error.user.not.authenticated");
+        }
+        
+        System.out.println("DEBUG: getActiveCheckIn called with user: " + (user != null ? user.getUsername() : "null"));
+        
         String version = config.getCurrentVersion();
 
         LocalDateTime startOfWeek = LocalDate.now(ZONE_ID)
@@ -68,6 +74,15 @@ public class CheckInService {
     @Transactional
     @SneakyThrows
     public CheckInResultResponse processSubmission(User user, CheckInResultRequest request) {
+        if (user == null) {
+            throw new BusinessValidationException("error.user.not.authenticated");
+        }
+        
+        // Ensure tenant is loaded to avoid lazy loading issues
+        if (user.getTenant() == null) {
+            throw new BusinessValidationException("error.user.not.authenticated");
+        }
+        
         if (!config.getCurrentVersion().equals(request.getCheckinId())){
             throw new BusinessValidationException("error.checkin.outdated_id");
         }

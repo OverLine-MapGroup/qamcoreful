@@ -1,6 +1,7 @@
 package com.qamcore.backend.checkin.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import lombok.Getter;
@@ -28,8 +29,8 @@ public class CheckInConfig {
 
     private final ObjectMapper objectMapper;
 
-    public CheckInConfig(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public CheckInConfig(Jackson2ObjectMapperBuilder builder) {
+        this.objectMapper = builder.build();
     }
 
     @PostConstruct

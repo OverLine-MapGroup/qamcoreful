@@ -2,6 +2,7 @@ package com.qamcore.backend.checkin.dto.response;
 
 import com.qamcore.backend.checkin.model.CheckInStatus;
 import com.qamcore.backend.checkin.service.CheckInConfig;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -11,6 +12,7 @@ import java.util.List;
 @Data
 @Builder
 public class ActiveCheckInResponse {
+    @JsonProperty("checkinId")
     private String checkInId;
     private CheckInStatus status;
     private LocalDateTime deadline;

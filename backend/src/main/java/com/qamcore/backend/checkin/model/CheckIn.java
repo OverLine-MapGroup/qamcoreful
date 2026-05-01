@@ -26,14 +26,14 @@ public class CheckIn extends BaseEntity {
     @Column(name = "tenant_id")
     private Long tenantId;
 
-    @Column(nullable = false)
+    @Column(name = "total_score", nullable = false)
     private Integer totalScore;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "risk_level", nullable = false)
     private RiskLevel riskLevel;
 
-    @Column(nullable = false)
+    @Column(name = "scoring_version", nullable = false)
     private String scoringVersion; // "weekly-v1"
 
     @Column(columnDefinition = "TEXT", nullable = false)

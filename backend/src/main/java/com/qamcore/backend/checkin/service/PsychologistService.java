@@ -25,6 +25,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.util.stream.Collectors.*;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -34,47 +36,108 @@ public class PsychologistService {
     private final BusinessMetricsService businessMetricsService;
 
     public PsychologistStatsResponse getDashboardStats(User psychologist) {
-        Long tenantId = psychologist.getTenant().getId();
-        long totalStudents = userRepository.countByTenantIdAndRole(tenantId, Role.STUDENT);
-        long activeToday = checkInRepository.countActiveToday(tenantId, LocalDate.now().atStartOfDay());
+        Long tenantId = TenantContext.getTenantId();
 
-        Map<Long, CheckIn> latestCheckIns = getLatestCheckInsMap(tenantId);
-        long redCount = latestCheckIns.values().stream()
-                .filter(c -> c.getRiskLevel() == RiskLevel.RED)
-                .count();
+        try {
+            long totalStudents = userRepository.countByTenantIdAndRole(tenantId, Role.STUDENT);
+            long activeToday = checkInRepository.countActiveToday(tenantId, LocalDate.now().atStartOfDay());
 
-        int percentage = totalStudents > 0 ? (int) ((redCount * 100) / totalStudents) : 0;
+            Map<Long, CheckIn> latestCheckIns = getLatestCheckInsMap(tenantId);
 
-        boolean hasUrl = psychologist.getBookingUrl() != null && !psychologist.getBookingUrl().isBlank();
+            long highRiskCount = latestCheckIns.values().stream()
+                    .filter(c -> c != null && c.getRiskLevel() != null && c.getRiskLevel() == RiskLevel.HIGH)
+                    .count();
 
-        return PsychologistStatsResponse.builder()
-                .totalStudents(totalStudents)
-                .riskGroupCount(redCount)
-                .riskPercentage(percentage)
-                .activeToday(activeToday)
-                .hasBookingUrl(hasUrl)
-                .build();
+            int percentage = totalStudents > 0 ? (int) ((highRiskCount * 100) / totalStudents) : 0;
+
+            boolean hasUrl = psychologist.getBookingUrl() != null && !psychologist.getBookingUrl().isBlank();
+
+            return PsychologistStatsResponse.builder()
+                    .totalStudents(totalStudents)
+                    .riskGroupCount(highRiskCount)
+                    .riskPercentage(percentage)
+                    .activeToday(activeToday)
+                    .hasBookingUrl(hasUrl)
+                    .build();
+        } catch (Exception e) {
+            return PsychologistStatsResponse.builder()
+                    .totalStudents(0L)
+                    .riskGroupCount(0L)
+                    .riskPercentage(0)
+                    .activeToday(0L)
+                    .hasBookingUrl(false)
+                    .build();
+        }
     }
 
     public Page<StudentListItemResponse> getStudentsList(String filter, Pageable pageable) {
         Long tenantId = TenantContext.getTenantId();
         String safeFilter = (filter == null || filter.isBlank()) ? "" : filter;
-        Page<CheckIn> pagedCheckIns = checkInRepository.findLatestCheckInsPaged(tenantId, safeFilter, pageable);
 
-        return pagedCheckIns.map(checkIn -> StudentListItemResponse.builder()
-                .studentId(checkIn.getUser().getId())
-                .displayName(checkIn.getUser().getUsername())
-                .riskLevel(checkIn.getRiskLevel().name())
-                .riskScore(checkIn.getTotalScore())
-                .lastCheckInAt(checkIn.getCreatedAt())
-                .hasSos(checkIn.getRiskLevel() == RiskLevel.RED)
-                .build());
+        List<CheckIn> allCheckIns = checkInRepository.findAllByTenantId(tenantId);
+
+        Map<Long, CheckIn> latestCheckInsByUser = allCheckIns.stream()
+                .filter(c -> c.getUser() != null)
+                .collect(Collectors.groupingBy(
+                        c -> c.getUser().getId(),
+                        Collectors.collectingAndThen(
+                                Collectors.maxBy(Comparator.comparing(c -> c.getCreatedAt())),
+                                opt -> opt.orElse(null)
+                        )
+                ));
+
+        org.springframework.data.domain.Pageable cleanPageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                org.springframework.data.domain.Sort.by("username").ascending()
+        );
+        
+        Page<User> pagedStudents;
+        if (safeFilter.isEmpty()) {
+            pagedStudents = userRepository.findAllByTenantIdAndRole(tenantId, Role.STUDENT, cleanPageable);
+        } else {
+            List<User> allStudents = userRepository.findAllByTenantIdAndRole(tenantId, Role.STUDENT);
+            List<User> filteredStudents = allStudents.stream()
+                    .filter(student -> student.getUsername().toLowerCase().contains(safeFilter.toLowerCase()))
+                    .collect(java.util.stream.Collectors.toList());
+            
+            int start = (int) cleanPageable.getOffset();
+            int end = Math.min(start + cleanPageable.getPageSize(), filteredStudents.size());
+            List<User> pageContent = filteredStudents.subList(start, end);
+            
+            pagedStudents = new org.springframework.data.domain.PageImpl<>(pageContent, cleanPageable, filteredStudents.size());
+        }
+
+        return pagedStudents.map(student -> {
+            CheckIn latestCheckIn = latestCheckInsByUser.get(student.getId());
+            
+            String riskLevel = "GREEN";
+            Integer riskScore = 0;
+            java.time.LocalDateTime lastCheckInAt = null;
+            boolean hasSos = false;
+            
+            if (latestCheckIn != null) {
+                riskLevel = latestCheckIn.getRiskLevel() != null ? latestCheckIn.getRiskLevel().name() : "GREEN";
+                riskScore = latestCheckIn.getTotalScore() != null ? latestCheckIn.getTotalScore() : 0;
+                lastCheckInAt = latestCheckIn.getCreatedAt();
+                hasSos = latestCheckIn.getRiskLevel() == RiskLevel.RED;
+            }
+            
+            return StudentListItemResponse.builder()
+                    .studentId(student.getId())
+                    .displayName(student.getUsername())
+                    .riskLevel(riskLevel)
+                    .riskScore(riskScore)
+                    .lastCheckInAt(lastCheckInAt)
+                    .hasSos(hasSos)
+                    .build();
+        });
     }
 
     public StudentDetailResponse getStudentDetails(Long studentId) {
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("error.student.notfound"));
-
+        
         if (!student.getTenant().getId().equals(TenantContext.getTenantId())) {
             throw new AccessDeniedException("error.student.access_denied");
         }
@@ -108,13 +171,23 @@ public class PsychologistService {
     }
 
     private Map<Long, CheckIn> getLatestCheckInsMap(Long tenantId) {
-        List<CheckIn> latestCheckIns = checkInRepository.findLatestCheckInsByTenant(tenantId);
+        try {
+            List<CheckIn> allCheckIns = checkInRepository.findAllByTenantId(tenantId);
 
-        return latestCheckIns.stream()
-                .collect(Collectors.toMap(
-                        c -> c.getUser().getId(),
-                        Function.identity()
-                ));
+            Map<Long, CheckIn> latestCheckInsByUser = allCheckIns.stream()
+                    .filter(c -> c != null && c.getUser() != null)
+                    .collect(Collectors.groupingBy(
+                            c -> c.getUser().getId(),
+                            Collectors.collectingAndThen(
+                                    Collectors.maxBy(Comparator.comparing(c -> c.getCreatedAt())),
+                                    opt -> opt.orElse(null)
+                            )
+                    ));
+
+            return latestCheckInsByUser;
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
     }
 
     @Transactional

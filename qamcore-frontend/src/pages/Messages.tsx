@@ -237,15 +237,30 @@ export default function Messages() {
     if (!selectedStudent) return;
 
     try {
-      const createdCase = await createCase(selectedStudent.studentId, newCase);
-      // Ensure cases is an array before spreading
-      setCases(prevCases => [...(Array.isArray(prevCases) ? prevCases : []), createdCase]);
+      const updatedCase = await createCase(selectedStudent.studentId, newCase);
+      
+      // Check if this is an update to an existing case or a new case
+      setCases(prevCases => {
+        const casesArray = Array.isArray(prevCases) ? prevCases : [];
+        const existingIndex = casesArray.findIndex(c => c.caseId === updatedCase.caseId);
+        
+        if (existingIndex >= 0) {
+          // Update existing case
+          const updatedCases = [...casesArray];
+          updatedCases[existingIndex] = updatedCase;
+          return updatedCases;
+        } else {
+          // Add new case
+          return [...casesArray, updatedCase];
+        }
+      });
+      
       setNewCase({ message: "", communicationLink: "" });
       setShowCreateCase(false);
-      alert("Кейс успешно создан");
+      alert("Message sent successfully");
     } catch (error) {
-      console.error("Error creating case:", error);
-      alert("Ошибка при создании кейса");
+      console.error("Error sending message:", error);
+      alert("Error sending message");
     }
   };
 

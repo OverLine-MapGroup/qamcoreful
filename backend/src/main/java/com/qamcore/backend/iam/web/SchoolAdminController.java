@@ -83,19 +83,19 @@ public class SchoolAdminController {
         return ResponseEntity.ok(analyticsService.getGroupDetails(groupId));
     }
 
-//    @PatchMapping("/complaints/{complaintId}/resolve")
-//    public ResponseEntity<Void> resolveComplaint(
-//            @PathVariable Long complaintId,
-//            @RequestBody @Valid ResolveComplaintRequest request,
-//            @AuthenticationPrincipal User staff) {
-//        complaintService.resolveComplaint(complaintId, request, staff);
-//        return ResponseEntity.noContent().build();
-//    }
-//
-//    @GetMapping("/complaints")
-//    public ResponseEntity<Page<Complaint>> getComplaints(
-//            @AuthenticationPrincipal User staff,
-//            @PageableDefault(size = 20) Pageable pageable) {
-//        return ResponseEntity.ok(complaintService.getComplaintsForAdmin(staff, pageable));
-//    }
+    @PatchMapping("/complaints/{complaintId}/resolve")
+    public ResponseEntity<Void> resolveComplaint(
+            @PathVariable Long complaintId,
+            @RequestBody @Valid ResolveComplaintRequest request,
+            @AuthenticationPrincipal User staff) {
+        complaintService.resolveComplaint(complaintId, request, staff);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/complaints")
+    public ResponseEntity<Page<Complaint>> getComplaints(
+            @AuthenticationPrincipal User staff,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(complaintService.getComplaintsForAdmin(staff, pageable));
+    }
 }

@@ -37,11 +37,17 @@ public class StudentGroupService {
         }
 
         Tenant tenant = tenantRepository.getReferenceById(tenantId);
-        StudentGroup group = StudentGroup.builder()
+        StudentGroup.StudentGroupBuilder<?, ?> groupBuilder = StudentGroup.builder()
                 .name(request.getName())
-                .tenant(tenant)
-                .build();
+                .tenant(tenant);
 
+        if (request.getCuratorId() != null) {
+            User curator = userRepository.findById(request.getCuratorId())
+                    .orElseThrow(() -> new BusinessValidationException("error.user.notfound"));
+            groupBuilder.curator(curator);
+        }
+
+        StudentGroup group = groupBuilder.build();
         group = groupRepository.save(group);
         return mapToResponse(group);
     }

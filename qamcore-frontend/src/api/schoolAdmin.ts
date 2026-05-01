@@ -31,7 +31,7 @@ export interface CreateStaffRequest {
 
 export interface CreateGroupRequest {
   name: string;
-  curatorId: number;
+  curatorId?: number | null;
 }
 
 export interface GenerateCodesRequest {

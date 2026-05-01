@@ -5,6 +5,7 @@ import com.qamcore.backend.common.exception.ResourceNotFoundException;
 import com.qamcore.backend.iam.dto.request.SignInRequest;
 import com.qamcore.backend.iam.dto.request.SignUpRequest;
 import com.qamcore.backend.iam.dto.response.JwtAuthenticationResponse;
+import com.qamcore.backend.iam.dto.response.AnonymousUserResponse;
 import com.qamcore.backend.iam.model.RefreshToken;
 import com.qamcore.backend.iam.model.User;
 import com.qamcore.backend.iam.repository.UserRepository;
@@ -37,11 +38,9 @@ public class AuthController {
     private Long refreshTokenDurationMs;
 
     @PostMapping("/register-anonymous")
-    public ResponseEntity<JwtAuthenticationResponse> register(@RequestBody @Valid SignUpRequest request, HttpServletResponse response) {
-        JwtAuthenticationResponse authResponse = authService.registerStudent(request);
-        setRefreshTokenCookie(response, authResponse.getRefreshToken());
-        authResponse.setRefreshToken(null);
-        return ResponseEntity.ok(authResponse);
+    public ResponseEntity<AnonymousUserResponse> register(@RequestBody @Valid SignUpRequest request, HttpServletResponse response) {
+        AnonymousUserResponse userResponse = authService.registerStudent(request);
+        return ResponseEntity.ok(userResponse);
     }
 
     @PostMapping("/login")
